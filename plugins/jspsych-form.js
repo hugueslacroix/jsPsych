@@ -1,30 +1,30 @@
 /*
  * jspsych-form (Version 1.1)
  * Junyan Qi
- * 
+ *
  * plugin for generating a form from a json schema.
  *
  * Documentation: docs.jspsych.org
  *
  * Dependency: jsPsych, Material Design Lite
  *
- * 
+ *
 
 Required links in the html file:
 <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 <link rel="stylesheet" href="https://code.getmdl.io/1.2.1/material.indigo-pink.min.css">
 <script src="../jspsych.js"></script>
 <script src="../plugins/jspsych-form.js"></script>
-  
+
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 
 SCHEMA EXAMPLE:
 
 var schema = {
     form: {form_title: "Test #1", ribbon_bg: "somePicture", form_description: ""},
-  
+
   ## for more avaliable settings, check the attributes of classes for each type
-    "Question #1": {type: "short answer", label: ""}, 
+    "Question #1": {type: "short answer", label: ""},
     "Question #2": {type: "password"},
     "Question #3": {type: "checkbox", labels: ["option1", "option2"], images:[image1, image2], values:[1, 2, 3, 4]},
     "Question #4": {type: "radio", labels: ["option1", "option2"]}, ## will automatically fill valuse
@@ -32,10 +32,10 @@ var schema = {
 
     ## not display question
     "Question #6": {type: "dropdown", needQuestion: false},
-  
+
   ## insert paragraph (similar for form)
     "Question #7": {type: "long answer", question_description: ""}, ## better styled
-    "Question #8<p>Contents</p>": {type: "long answer"}, 
+    "Question #8<p>Contents</p>": {type: "long answer"},
 
     onSubmit: {label: "Next"}
   };
@@ -68,13 +68,24 @@ var schema = {
     function end_trial() {
 
       var customized_output = undefined;
-      if (trial.schema.onSubmit.onclick != undefined) 
+      if (trial.schema.onSubmit.onclick != undefined)
         var customized_output = docReady(trial.schema.onSubmit.onclick);
-      
+      //This allows for recursivity
+      end_trial_parse_schema(questions);
 
+      if (customized_output)
+        trial_data["#Customized Output#"] = customized_output;
+
+      display_element.innerHTML = '';
+      componentHandler.upgradeDom();
+      jsPsych.finishTrial(trial_data);
+    }
+
+    function end_trial_parse_schema(questions, key_prefix){
+      if(typeof key_prefix == 'undefined')key_prefix = '';
       for (var i = 0; i < questions.length; i++) {
         var question = questions[i]
-        var key = question.question || question.label || question.type;
+        var key = (question.data_key || question.question || question.label || question.type);
 
         var type = question.type;
         var value;
@@ -148,6 +159,13 @@ var schema = {
             // check required field
 
             break;
+            case 'tab':
+              for(var i in question.questions){
+                end_trial_parse_schema(question.questions[i], i);
+              }
+
+            //nothing to do yet.
+            break;
 
             // codes for other type questions
             default:
@@ -179,12 +197,6 @@ var schema = {
 
           trial_data[key] = value;
         }
-
-        if (customized_output) 
-          trial_data["#Customized Output#"] = customized_output;
-
-        display_element.html('');
-        jsPsych.finishTrial(trial_data);
       }
 
       document.getElementById(button.id).onclick = function() {
@@ -232,11 +244,11 @@ var schema = {
 
   function docReady(callback) {
     if (callback == undefined) return;
-    if (document.readyState === "complete" || 
-      document.readyState !== "loading" && 
-      !document.documentElement.doScroll) 
+    if (document.readyState === "complete" ||
+      document.readyState !== "loading" &&
+      !document.documentElement.doScroll)
       return callback();
-    else 
+    else
       document.addEventListener("DOMContentLoaded", callback);
   }
 
@@ -267,19 +279,29 @@ var schema = {
   var __TEXTAREA = 0;
 
   var __FORM = 0;
+  var __TAB = 0;
 
   function createForm(display_element, schema) {
     schema.form = schema.form || {};
     var form = new Form(display_element, schema.form);
     var form_id = form.id;
 
-    var questions = [];
+    var questions = parseQuestions(schema, form_id);
 
+      var button = new Button(form_id, schema.onSubmit);
+
+      return [form, questions, button];
+    }
+
+  function parseQuestions(schema, form_id){
+    var questions = [];
     for (var i in Object.keys(schema)) {
       i = Object.keys(schema)[i]
-      if (i == "form" || i == "onSubmit")
+      if (i == "form" || i == "tab" || i == "onSubmit")
         continue;
       item = schema[i]
+      if((schema.form && schema.form.use_data_key) || (schema.tab && schema.tab.use_data_key))
+        item.data_key = i;
       item.question = item.question || i;
       var type = item.type;
       var question;
@@ -343,20 +365,20 @@ var schema = {
           case "week":
           question = new InputWeek(form_id, item);
           break;
+          case 'tab':
+          question = new Tab(form_id, item, schema.form);
         }
         questions.push(question);
       }
+      return questions;
+  }
 
-      var button = new Button(form_id, schema.onSubmit);
-
-      return [form, questions, button];
-    }
 
 
   /*
   ############################################################
   # Form
-  # Form does the following: render a MDL style form 
+  # Form does the following: render a MDL style form
 
   #
   # Arbitrary settings:
@@ -370,13 +392,13 @@ var schema = {
   # @param item.form_title_size
   # @param item.form_title_color
   # @param item.form_description
-  # @param item.form_description_color 
-  # @param item.form_description_size 
+  # @param item.form_description_color
+  # @param item.form_description_size
 
   # layout settings:
-  # @param item.layout_color 
-  # @param item.ribbon_color 
-  # @param item.ribbon_height 
+  # @param item.layout_color
+  # @param item.ribbon_color
+  # @param item.ribbon_height
   # @param item.ribbon_bg
   # @param item.ribbon_bg_size
   # @param item.content_bg_color
@@ -452,9 +474,13 @@ var schema = {
     this.render();
   }
   Form.prototype.render = function() {
-    $(this.display_element).html(this.html);
-  }
 
+    this.display_element.innerHTML = this.html;
+     setTimeout(function(){
+       componentHandler.upgradeDom();
+     }, 1);
+    //docReady(componentHandler.upgradeDom);
+  }
   /*
   ############################################################
   # Tag does the following:
@@ -492,6 +518,7 @@ var schema = {
     // standard attributs
     this.parent_id = parent_id;
 
+    this.data_key = item.data_key || "";
     this.label = item.label || "";
     this.value = item.value || "";
     this.name = item.name || "";
@@ -549,6 +576,43 @@ var schema = {
     }
   }
 
+  function Tab(parent_id, item ={}, parent_form){
+    var tab_content = [];
+    item.type = item.type || "tab";
+    item.id = item.id || "{0}_{1}".format(item.type, __TAB++);
+    item.needQuestion = false;
+
+    Tag.call(this, parent_id, item);
+    //First parse the tabs and append them to the DOM
+    this.html = '<div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect">\
+               <div class="mdl-tabs__tab-bar">';
+    for(var i in item.schema){
+     this.html += '<a href="#{0}-panel" class="mdl-tabs__tab{1}">{2}</a>'.format(
+       item.schema[i].tab.id,
+       (i==0 ? ' is-active' : ''),
+       item.schema[i].tab.tab_title
+     );
+     tab_content.push('<div class="mdl-tabs__panel{0}" id="{1}-panel"></div>'.format(
+                     (i==0 ? ' is-active' : ''),
+                     item.schema[i].tab.id,
+                     item.schema[i].tab.tab_title)
+                  );
+    }
+    this.html += '</div>';
+    this.html += tab_content.join('');
+
+    this.render();
+
+    //Then insert everything in the tabs
+    this.questions = [];
+    for(var i in item.schema){
+      if(parent_form.use_data_key) item.schema[i].tab.use_data_key = true;
+      this.questions[i] = parseQuestions(item.schema[i], item.schema[i].tab.id+'-panel');
+    }
+
+  }
+  Tab.prototype = inherit(Tag.prototype);
+
   /*
   ############################################################
   # Button **inherits** Tag
@@ -558,7 +622,7 @@ var schema = {
   # item.type <-- automatically assigned
   # item.id   <-- automatically assigned
   # item.needQuestion <-- False
-  #   
+  #
   # @param parent_id --> the id of its parent element
   # @param item --> an object of values for setting
   # @param item.buttonStyle --> see MDL attribute
@@ -774,6 +838,8 @@ var schema = {
     item.id = item.id || "{0}_{1}".format(item.type, __SELECT++);
     item.label = item.label || item.id;
     item.needQuestion = (item.needQuestion == false) ? false : true;
+    item = jsPsych.pluginAPI.evaluateFunctionParameters(item);
+
     Tag.call(this, parent_id, item);
 
     this.options = item.options || ["option1", "option2", "option3"];
@@ -854,6 +920,7 @@ Dropdown.prototype._option_factory = function() {
   */
   function InputTextField(parent_id, item) {
     item.needQuestion = (item.needQuestion == false) ? false : true;
+    item = jsPsych.pluginAPI.evaluateFunctionParameters(item);
     Tag.call(this, parent_id, item);
 
     //MDL style
@@ -1111,12 +1178,13 @@ Dropdown.prototype._option_factory = function() {
   */
   function Toggle(parent_id, item = {}) {
     item.newline = item.newline || false;
+
     Tag.call(this, parent_id, item);
 
     // settings for mdl
-    // this.type --> type as a <input> tag 
+    // this.type --> type as a <input> tag
     // this.type_class --> template of different type class in mdl i.e. checkbox switch...
-    // this.content_class --> template of different content class in mdl  
+    // this.content_class --> template of different content class in mdl
     this.ripple = (item.ripple == false) ? false : true;
     this.toggle_type = item.toggle_type;
 
@@ -1187,6 +1255,7 @@ Dropdown.prototype._option_factory = function() {
     item.id = item.id || "{0}_{1}".format(item.type, __INPUT_RADIO++);
     item.toggle_type = "radio";
     item.label = item.label || "Radio #{0}".format(__INPUT_RADIO - 1);
+
     Toggle.call(this, parent_id, item);
 
     this.type_class = 'mdl-radio__button';
@@ -1207,9 +1276,9 @@ Dropdown.prototype._option_factory = function() {
   # ToggleGroup does the following: renders a group of toggles
   # **note:
   #        if item.values is not assigned, it will first take values
-  #        from item.labels and then from item.images until 
+  #        from item.labels and then from item.images until
   #        item.values have the same size as item.labels + item.images
-  #        
+  #
   # Arbitrary settings:
   # item.type <-- automatically assigned
   # item.id   <-- automatically assigned
@@ -1236,6 +1305,7 @@ Dropdown.prototype._option_factory = function() {
     item.labels = item.labels || [];
     item.values = item.values || [];
     item.correctAnswers = item.correctAnswers || [];
+    item = jsPsych.pluginAPI.evaluateFunctionParameters(item);
     Tag.call(this, parent_id, item);
 
     // Process for standardizing item.values. Details are in the above comment
