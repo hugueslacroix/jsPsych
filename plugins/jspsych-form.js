@@ -47,8 +47,12 @@ var schema = {
 
     var plugin = {};
 
-    plugin.trial = function(display_element, trial) {
+    plugin.appendTab = function(schema, parent_id, index){
+      this.questions[index].questions.push(Tab.append(parent_id, schema));
+    }
 
+    plugin.trial = function(display_element, trial) {
+    trial.ref = this;
     // set default values for parameters
     trial.schema = trial.schema || {};
     trial.schema.onSubmit = trial.schema.onSubmit || {
@@ -58,6 +62,7 @@ var schema = {
     var tags = createForm(display_element, trial.schema);
     var form = tags[0];
     var questions = tags[1];
+    this.questions = tags[1];
     var button = tags[2];
 
     var trial_data = {
@@ -71,7 +76,7 @@ var schema = {
       if (trial.schema.onSubmit.onclick != undefined)
         var customized_output = docReady(trial.schema.onSubmit.onclick);
       //This allows for recursivity
-      end_trial_parse_schema(questions);
+      end_trial_parse_schema(trial.ref.questions);
 
       if (customized_output)
         trial_data["#Customized Output#"] = customized_output;
@@ -287,7 +292,6 @@ var schema = {
     var form_id = form.id;
 
     var questions = parseQuestions(schema, form_id);
-
       var button = new Button(form_id, schema.onSubmit);
 
       return [form, questions, button];
@@ -461,7 +465,7 @@ var schema = {
     <div class="mdl-grid" style="max-width: 1600px;width: calc(100% - 16px);margin: 0 auto;margin-top: 10vh;">\
     <div class="mdl-cell mdl-cell--2-col mdl-cell--hide-tablet mdl-cell--hide-phone"></div>\
     <div class="mdl-color--{0} mdl-shadow--{4}dp mdl-cell mdl-cell--8-col" style="border-radius: 2px;padding: 80px 56px;margin-bottom: 80px;">\
-    <div class="mdl-color-text--{1}" id="{2}" style="width: 512px;">{3}</div></div>\
+    <div class="mdl-color-text--{1}" id="{2}" style="">{3}</div></div>\
     <div class="mdl-layout mdl-color-text--grey-600" style="text-align: center; font-size: 12px; margin-top: -60px">\
     </div><div class="mdl-layout mdl-color-text--grey-700" style="text-align: center; font-size: 19px; margin-top: -30px">\
     </div></div></main>'.format(
@@ -581,27 +585,37 @@ var schema = {
     item.type = item.type || "tab";
     item.id = item.id || "{0}_{1}".format(item.type, __TAB++);
     item.needQuestion = false;
-
+    //item = jsPsych.pluginAPI.evaluateFunctionParameters(item);
     Tag.call(this, parent_id, item);
     //First parse the tabs and append them to the DOM
-    this.html = '<div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect">\
-               <div class="mdl-tabs__tab-bar">';
+    this.html = '<div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect" id="{0}">\
+               <div class="mdl-tabs__tab-bar">'.format(item.id);
     for(var i in item.schema){
      this.html += '<a href="#{0}-panel" class="mdl-tabs__tab{1}">{2}</a>'.format(
        item.schema[i].tab.id,
        (i==0 ? ' is-active' : ''),
        item.schema[i].tab.tab_title
      );
-     tab_content.push('<div class="mdl-tabs__panel{0}" id="{1}-panel"></div>'.format(
+     tab_content.push('<div class="mdl-tabs__panel{0}" id="{1}-panel"><p></p></div>'.format(
                      (i==0 ? ' is-active' : ''),
                      item.schema[i].tab.id,
                      item.schema[i].tab.tab_title)
                   );
     }
+    if(item.add_tab){
+      this.html += '<a id="duplicate_tab" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored mdl-js-ripple-effect mdl-cell--bottom">\
+                      <i class="material-icons">add</i>\
+                    </a>';
+    }
     this.html += '</div>';
     this.html += tab_content.join('');
 
     this.render();
+
+    document.getElementById("duplicate_tab").onclick = function(e){
+      item.add_tab(e);
+    };
+
 
     //Then insert everything in the tabs
     this.questions = [];
@@ -612,6 +626,31 @@ var schema = {
 
   }
   Tab.prototype = inherit(Tag.prototype);
+
+  Tab.append = function(parent_id, schema ={}){
+
+    var tab_bar = document.getElementById(parent_id).querySelector(".mdl-tabs__tab-bar");
+    tab_bar.querySelector(".is-active").classList.remove("is-active");
+    document.getElementById(parent_id).querySelector(".mdl-tabs__panel.is-active").classList.remove("is-active");
+    //Downgrade to remove MDL stuff
+    componentHandler.downgradeElements(document.getElementById(parent_id));
+    //insert into tab navbar
+    tab_bar.querySelector("#duplicate_tab").insertAdjacentHTML('beforebegin',
+    '<a href="#{0}-panel" class="mdl-tabs__tab is-active">{1}</a>'.format(schema.tab.id,
+      schema.tab.tab_title));
+    //insert tab panel
+    tab_bar.insertAdjacentHTML('afterend','<div class="mdl-tabs__panel is-active" id="{0}-panel"><p></p></div>'.format(
+                      schema.tab.id)
+                   );
+    //Parse new questions
+    questions = parseQuestions(schema, schema.tab.id+'-panel');
+
+    //Prepare to upgrade to make tabs work again
+    setTimeout(function(){
+      componentHandler.upgradeDom();
+    }, 1);
+    return questions;
+  }
 
   /*
   ############################################################
@@ -1185,6 +1224,7 @@ Dropdown.prototype._option_factory = function() {
     // this.type --> type as a <input> tag
     // this.type_class --> template of different type class in mdl i.e. checkbox switch...
     // this.content_class --> template of different content class in mdl
+    this.disabled = (item.disabled) ? ' disabled="disabled"' : '';
     this.ripple = (item.ripple == false) ? false : true;
     this.toggle_type = item.toggle_type;
 
@@ -1200,10 +1240,10 @@ Dropdown.prototype._option_factory = function() {
     var html = '<label for="{0}" class="mdl-{1} mdl-js-{1}{2}">'.format(
       this.id, this.toggle_type, addon
       );
-    html += '<input type="{0}" id="{1}" class="{2}" form="{3}" {4} {5} {6} value="{7}" name="{8}" {9}>'.format(
+    html += '<input type="{0}" id="{1}" class="{2}" form="{3}" {4} {5} {6} value="{7}" name="{8}" {9} {10}>'.format(
       this.type, this.id, this.type_class, this.parent_id,
       this.checked, this.autofocus, this.required,
-      this.value, this.name, this.readonly
+      this.value, this.name, this.readonly, this.disabled
       );
     html += this.content_class + '</label>'
 
@@ -1255,6 +1295,7 @@ Dropdown.prototype._option_factory = function() {
     item.id = item.id || "{0}_{1}".format(item.type, __INPUT_RADIO++);
     item.toggle_type = "radio";
     item.label = item.label || "Radio #{0}".format(__INPUT_RADIO - 1);
+    item.disabled = item.disabled ? ' disabled="disabled"' : ''
 
     Toggle.call(this, parent_id, item);
 
