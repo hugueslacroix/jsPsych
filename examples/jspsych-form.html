@@ -21,7 +21,7 @@
 		document.getElementById("custom_id_1").value += "Customize actions when submit buttons is pressed.";
 		return {"Customized output": "Customize actions when submit buttons is pressed."};
 	}
-	
+
 	var schema = {
 		form: {form_title: 'Test #1', ribbon_bg: "img/ribbon.jpg", layout_color: "grey-300", content_bg_color: "grey-100"},
 		"Question #1": {type: "short answer", correct: "Answer #1", required: true},
@@ -33,6 +33,27 @@
 		"Question #7": {type: "long answer", question_description: "Some random contents", id: "custom_id_1"},
 		"Question #8<p>Some random contents</p>": {type: "long answer", question_description: ""},
 		"Question #9": {type: "file"},
+
+		"Tab without duplicate": {type: "tab", schema:[
+			{
+				tab: {tab_title: 'Single tab w/o duplicate'},
+				"Question #1": {type: "text"},
+				"Question #2": {type: "text"},
+			},
+		]},
+		"Tab with duplicate": {type: "tab", max_tabs:8, schema:[
+			{
+				tab: {tab_title: 'Tab #1 with dup.'},
+				"Question #1": {type: "text"},
+				"Question #2": {type: "text"},
+			},
+		], add_tab: function(i){
+			return {
+				tab: {tab_title: "Tab #{0} with dup".format(i)},
+				["Question #1-"+i]: {type: "text"},
+				["Question #2-"+i]: {type: "text"},
+			}
+		}},
 		onSubmit: {label: "Submit", onclick: clickToSubmit}
 	}
 

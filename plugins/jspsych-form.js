@@ -46,13 +46,12 @@ var schema = {
   jsPsych.plugins["form"] = (function() {
 
     var plugin = {};
-
-    plugin.appendTab = function(schema, parent_id, index){
-      this.questions[index].questions.push(Tab.append(parent_id, schema));
-    }
+    var pluginTrial;
 
     plugin.trial = function(display_element, trial) {
-    trial.ref = this;
+    // Allows us to access plugin's instance
+    // TODO: find a cleaner way to do this.
+    pluginTrial = trial.ref = this;
     // set default values for parameters
     trial.schema = trial.schema || {};
     trial.schema.onSubmit = trial.schema.onSubmit || {
@@ -91,7 +90,7 @@ var schema = {
       for (var i = 0; i < questions.length; i++) {
         var question = questions[i]
         var key = (question.data_key || question.question || question.label || question.type);
-
+        if(key_prefix && !question.data_key) key = key_prefix + '_' + key;
         var type = question.type;
         var value;
         switch (type) {
@@ -165,8 +164,8 @@ var schema = {
 
             break;
             case 'tab':
-              for(var i in question.questions){
-                end_trial_parse_schema(question.questions[i], i);
+              for(var l in question.questions){
+                end_trial_parse_schema(question.questions[l], i);
               }
 
             //nothing to do yet.
@@ -285,6 +284,7 @@ var schema = {
 
   var __FORM = 0;
   var __TAB = 0;
+  var __TAB_PANEL = 0;
 
   function createForm(display_element, schema) {
     schema.form = schema.form || {};
@@ -296,6 +296,18 @@ var schema = {
 
       return [form, questions, button];
     }
+
+  function appendTab(e, return_tab_schema, parent_id, max_tabs, message_max_tabs, ref_tab){
+    var index = e.srcElement.parentElement.parentElement.parentElement.querySelectorAll('.mdl-tabs__panel').length+1;
+
+    if(index > max_tabs) {
+      alert(message_max_tabs)
+      return false;
+    }
+    tab_schema = return_tab_schema(index);
+    tab_schema.tab.id = tab_schema.tab.id || "{0}_{1}".format(parent_id, __TAB_PANEL++);
+    ref_tab.questions.push(Tab.append(parent_id, tab_schema));
+  }
 
   function parseQuestions(schema, form_id){
     var questions = [];
@@ -370,7 +382,7 @@ var schema = {
           question = new InputWeek(form_id, item);
           break;
           case 'tab':
-          question = new Tab(form_id, item, schema.form);
+          question = new Tab(form_id, item, schema.form, questions.length);
         }
         questions.push(question);
       }
@@ -580,17 +592,20 @@ var schema = {
     }
   }
 
-  function Tab(parent_id, item ={}, parent_form){
+  function Tab(parent_id, item ={}, parent_form, question_index){
     var tab_content = [];
+    var trial = pluginTrial;
     item.type = item.type || "tab";
     item.id = item.id || "{0}_{1}".format(item.type, __TAB++);
     item.needQuestion = false;
-    //item = jsPsych.pluginAPI.evaluateFunctionParameters(item);
+    item.max_tabs = item.max_tabs ? item.max_tabs : 2;
+    item.message_max_tabs = item.message_max_tabs ? item.message_max_tabs : 'You have enough tabs!';
     Tag.call(this, parent_id, item);
     //First parse the tabs and append them to the DOM
     this.html = '<div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect" id="{0}">\
                <div class="mdl-tabs__tab-bar">'.format(item.id);
     for(var i in item.schema){
+      item.schema[i].tab.id = item.schema[i].tab.id || "{0}_{1}".format(item.id, __TAB_PANEL++);
      this.html += '<a href="#{0}-panel" class="mdl-tabs__tab{1}">{2}</a>'.format(
        item.schema[i].tab.id,
        (i==0 ? ' is-active' : ''),
@@ -612,9 +627,11 @@ var schema = {
 
     this.render();
 
-    document.getElementById("duplicate_tab").onclick = function(e){
-      item.add_tab(e);
-    };
+    if(item.add_tab){
+      document.getElementById("duplicate_tab").onclick = function(e){
+        appendTab(e, item.add_tab, item.id, item.max_tabs, item.message_max_tabs, trial.questions[question_index]);
+      };
+    }
 
 
     //Then insert everything in the tabs
