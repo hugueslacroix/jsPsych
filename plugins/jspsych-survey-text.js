@@ -92,18 +92,20 @@ jsPsych.plugins['survey-text'] = (function() {
     // show preamble text
     display_element.innerHTML += '<div id="jspsych-survey-text-preamble" class="jspsych-survey-text-preamble">'+trial.preamble+'</div>';
 
+    display_element.innerHTML += '<form id="jspsych-survey-text-form">';
+    var form_element = display_element.querySelector('#jspsych-survey-text-form');
     // add questions
     for (var i = 0; i < trial.questions.length; i++) {
-      display_element.innerHTML += '<div id="jspsych-survey-text-"'+i+'" class="jspsych-survey-text-question" style="margin: 2em 0em;">'+
+      form_element.innerHTML += '<div id="jspsych-survey-text-"'+i+'" class="jspsych-survey-text-question" style="margin: 2em 0em;">'+
         '<p class="jspsych-survey-text">' + trial.questions[i] + '</p>'+
         '<textarea name="#jspsych-survey-text-response-' + i + '" cols="' + trial.columns[i] + '" rows="' + trial.rows[i] + '">'+trial.values[i]+'</textarea>'+
         '</div>';
     }
 
     // add submit button
-    display_element.innerHTML += '<button id="jspsych-survey-text-next" class="jspsych-btn jspsych-survey-text">'+trial.button_label+'</button>';
+    form_element.innerHTML += '<button id="jspsych-survey-text-next" class="jspsych-btn jspsych-survey-text">'+trial.button_label+'</button>';
 
-    display_element.querySelector('#jspsych-survey-text-next').addEventListener('click', function() {
+    form_element.querySelector('#jspsych-survey-text-next').addEventListener('click', function() {
       // measure response time
       var endTime = (new Date()).getTime();
       var response_time = endTime - startTime;
