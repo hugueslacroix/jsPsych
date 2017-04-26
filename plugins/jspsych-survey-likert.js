@@ -76,11 +76,11 @@ jsPsych.plugins['survey-likert'] = (function() {
       var width = 100 / trial.labels[i].length;
       options_string = '<ul class="jspsych-survey-likert-opts" data-radio-group="Q' + i + '">';
       for (var j = 0; j < trial.labels[i].length; j++) {
-        options_string += '<li style="width:' + width + '%"><input type="radio" name="Q' + i + '" value="' + j + '"';
+        options_string += '<li style="width:' + width + '%"><input type="radio" name="Q' + i + '" id="Q' + i + '-'+ j +'" value="' + j + '"';
         if(trial.required){
           options_string += ' required';
         }
-        options_string += '><label class="jspsych-survey-likert-opt-label">' + trial.labels[i][j] + '</label></li>';
+        options_string += '><label class="jspsych-survey-likert-opt-label" for="Q' + i + '-'+ j +'">' + trial.labels[i][j] + '</label></li>';
       }
       options_string += '</ul>';
       form_element.innerHTML += options_string;
