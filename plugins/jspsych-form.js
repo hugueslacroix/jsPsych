@@ -136,23 +136,38 @@ jsPsych.plugins["form"] = (function() {
                         };
 
                         // check answer
-                        var expectedAnswers = Object.keys(question.correctAnswers);
-                        for (var j = 0; j < expectedAnswers.length; j++) {
-                            var k = expectedAnswers[j];
-                            if (question.correctAnswers[k])
-                                value["Expected Answers"].push(k)
+                        if(question.correctAnswers.length){
+
+                          var expectedAnswers = Object.keys(question.correctAnswers);
+                          for (var j = 0; j < expectedAnswers.length; j++) {
+                              var k = expectedAnswers[j];
+                              if (question.correctAnswers[k])
+                                  value["Expected Answers"].push(k)
+                          }
+                          for (var j = 0; j < question.products.length; j++) {
+                              product = question.products[j];
+                              checked = document.getElementById(product.id).checked;
+                              if (checked) {
+                                  flag = true;
+                                  value["Answers Chosen"].push(product.value);
+                              }
+                              if (product.correct != checked)
+                                  asExpected = false;
+                          }
+                          value["Result"] = (asExpected) ? "Correct" : "Wrong";
+                        }else{
+                          value = [];
+                          for (var j = 0; j < question.products.length; j++) {
+                              product = question.products[j];
+                              checked = document.getElementById(product.id).checked;
+                              if (checked) {
+                                  flag = true;
+                                  value.push(product.value);
+                              }
+                              if (product.correct != checked)
+                                  asExpected = false;
+                          }
                         }
-                        for (var j = 0; j < question.products.length; j++) {
-                            product = question.products[j];
-                            checked = document.getElementById(product.id).checked;
-                            if (checked) {
-                                flag = true;
-                                value["Answers Chosen"].push(product.value);
-                            }
-                            if (product.correct != checked)
-                                asExpected = false;
-                        }
-                        value["Result"] = (asExpected) ? "Correct" : "Wrong";
                         // check answer
 
                         // check required field
@@ -200,6 +215,8 @@ jsPsych.plugins["form"] = (function() {
                             focus(question.id);
                             return;
                         }
+
+
                         break;
                 }
                 // check required field
@@ -313,10 +330,30 @@ jsPsych.plugins["form"] = (function() {
         tab_schema = return_tab_schema(index);
         tab_schema.tab.id = tab_schema.tab.id || "{0}_{1}".format(parent_id, __TAB_PANEL++);
         ref_tab.questions.push(Tab.append(parent_id, tab_schema));
+        Tab.updateLastPanel(tab_schema.tab.id + '-panel', parent_id, ref_tab);
     }
+
+    function deleteTab(e, parent_id, ref_tab) {
+      var currentPanel = e.srcElement.parentElement.parentElement.parentElement;
+      var newFocusPanel = currentPanel.previousElementSibling.id;
+      var currentLink = document.querySelector("a[href='#"+currentPanel.id+"']");
+      Tab.focus(newFocusPanel);
+      currentPanel.remove();
+      currentLink.remove();
+
+      ref_tab.questions.splice(-1,1);
+      Tab.updateLastPanel(newFocusPanel, parent_id, ref_tab);
+
+
+      setTimeout(function() {
+          componentHandler.upgradeDom();
+      }, 1);
+    }
+
 
     function parseQuestions(schema, form_id) {
         var questions = [];
+        var item;
         for (var i in Object.keys(schema)) {
             i = Object.keys(schema)[i]
             if (i == "form" || i == "tab" || i == "onSubmit")
@@ -389,6 +426,12 @@ jsPsych.plugins["form"] = (function() {
                     break;
                 case 'tab':
                     question = new Tab(form_id, item, schema.form, questions.length);
+                    if(item.remove_tab){
+                      //Insert delete tab button
+                      Tab.updateLastPanel(item.schema[item.schema.length-1].tab.id + "-panel", item.id, question);
+                    }
+                break;
+
             }
             questions.push(question);
         }
@@ -604,13 +647,17 @@ jsPsych.plugins["form"] = (function() {
         item.type = item.type || "tab";
         item.id = item.id || "{0}_{1}".format(item.type, __TAB++);
         item.needQuestion = false;
-        item.max_tabs = item.max_tabs ? item.max_tabs : 2;
+        this.min_tabs = item.min_tabs ? item.min_tabs : 1;
+        this.max_tabs = item.max_tabs = item.max_tabs ? item.max_tabs : 2;
         item.message_max_tabs = item.message_max_tabs ? item.message_max_tabs : 'You have enough tabs!';
+        this.remove_tab = item.remove_tab = item.remove_tab ? item.remove_tab : false;
+
         Tag.call(this, parent_id, item);
         //First parse the tabs and append them to the DOM
         this.html = '<div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect" id="{0}">\
                <div class="mdl-tabs__tab-bar">'.format(item.id);
         for (var i in item.schema) {
+            console.log(item.schema, i);
             item.schema[i].tab.id = item.schema[i].tab.id || "{0}_{1}".format(item.id, __TAB_PANEL++);
             this.html += '<a href="#{0}-panel" class="mdl-tabs__tab{1}">{2}</a>'.format(
                 item.schema[i].tab.id,
@@ -620,7 +667,9 @@ jsPsych.plugins["form"] = (function() {
             tab_content.push('<div class="mdl-tabs__panel{0}" id="{1}-panel"><p></p></div>'.format(
                 (i == 0 ? ' is-active' : ''),
                 item.schema[i].tab.id,
-                item.schema[i].tab.tab_title));
+                item.schema[i].tab.tab_title
+                )
+            );
         }
         if (item.add_tab) {
             this.html += '<a id="duplicate_tab" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored mdl-js-ripple-effect mdl-cell--bottom">\
@@ -632,11 +681,8 @@ jsPsych.plugins["form"] = (function() {
 
         this.render();
 
-        if (item.add_tab) {
-            document.getElementById("duplicate_tab").onclick = function(e) {
-                appendTab(e, item.add_tab, item.id, item.max_tabs, item.message_max_tabs, trial.questions[question_index]);
-            };
-        }
+
+
 
 
         //Then insert everything in the tabs
@@ -646,14 +692,23 @@ jsPsych.plugins["form"] = (function() {
             this.questions[i] = parseQuestions(item.schema[i], item.schema[i].tab.id + '-panel');
         }
 
+        //Add duplicate and delete buttons
+        if (item.add_tab) {
+            document.getElementById("duplicate_tab").onclick = function(e) {
+                appendTab(e, item.add_tab, item.id, item.max_tabs, item.message_max_tabs, trial.questions[question_index]);
+            };
+        }
+
+
     }
     Tab.prototype = inherit(Tag.prototype);
 
     Tab.append = function(parent_id, schema = {}) {
 
         var tab_bar = document.getElementById(parent_id).querySelector(".mdl-tabs__tab-bar");
-        tab_bar.querySelector(".is-active").classList.remove("is-active");
-        document.getElementById(parent_id).querySelector(".mdl-tabs__panel.is-active").classList.remove("is-active");
+        if(tab_bar.querySelector(".is-active")) tab_bar.querySelector(".is-active").classList.remove("is-active");
+        if(document.getElementById(parent_id).querySelector(".mdl-tabs__panel.is-active")) document.getElementById(parent_id).querySelector(".mdl-tabs__panel.is-active").classList.remove("is-active");
+        if(document.getElementById(parent_id).querySelector(".mdl-tabs__delete")) document.getElementById(parent_id).querySelector(".mdl-tabs__delete").remove();
         //Downgrade to remove MDL stuff
         componentHandler.downgradeElements(document.getElementById(parent_id));
         //insert into tab navbar
@@ -661,8 +716,9 @@ jsPsych.plugins["form"] = (function() {
             '<a href="#{0}-panel" class="mdl-tabs__tab is-active">{1}</a>'.format(schema.tab.id,
                 schema.tab.tab_title));
         //insert tab panel
-        tab_bar.insertAdjacentHTML('afterend', '<div class="mdl-tabs__panel is-active" id="{0}-panel"><p></p></div>'.format(
+        tab_bar.parentElement.insertAdjacentHTML('beforeend', '<div class="mdl-tabs__panel is-active" id="{0}-panel"><p></p></div>'.format(
             schema.tab.id));
+
         //Parse new questions
         questions = parseQuestions(schema, schema.tab.id + '-panel');
 
@@ -670,7 +726,19 @@ jsPsych.plugins["form"] = (function() {
         setTimeout(function() {
             componentHandler.upgradeDom();
         }, 1);
+
         return questions;
+    }
+
+    Tab.updateLastPanel = function(tab_id, parent_id, ref_tab){
+      var tabCount = document.getElementById(tab_id).parentElement.querySelectorAll(".mdl-tabs__panel").length;
+      if(tabCount > ref_tab.min_tabs){
+        document.getElementById(tab_id).querySelector("p").insertAdjacentHTML('afterend', '<span class="mdl-chip mdl-chip--deletable mdl-tabs__delete"><span class="mdl-chip__text">{0}</span><button type="button" class="mdl-chip__action"><i class="material-icons">cancel</i></button></span>'.format(ref_tab.remove_tab.button_label));
+        document.querySelector(".mdl-tabs__delete .mdl-chip__action").onclick = function(e) {
+            deleteTab(e, parent_id, ref_tab);
+            return false;
+        };
+      }
     }
 
     Tab.focus = function(tab_id){
@@ -682,8 +750,6 @@ jsPsych.plugins["form"] = (function() {
       tab_container.querySelector("a[href='#"+tab_id+"']").classList.add('is-active');
       //new tab panel
       tab_container.querySelector("#"+tab_id).classList.add('is-active');
-
-      console.log(tab_container);
     }
 
     /*
@@ -1005,7 +1071,7 @@ jsPsych.plugins["form"] = (function() {
 
         this.icon = item.icon || "";
         this.pattern = item.pattern || ".*";
-        this.errorInfo = item.errorInfo || "Your input is not as required!";
+        this.errorInfo = item.errorInfo || ("Your input is not as required!");
 
         //attributes
         this.accessKey = item.accessKey || "";
@@ -1450,5 +1516,7 @@ jsPsych.plugins["form"] = (function() {
     }
 
     return plugin;
+
+
 
 })();
