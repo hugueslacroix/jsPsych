@@ -45,6 +45,8 @@ jsPsych.plugins['survey-likert'] = (function() {
     trial.preamble = typeof trial.preamble === 'undefined' ? "" : trial.preamble;
     trial.required = typeof trial.required === 'undefined' ? false : trial.required;
     trial.button_label = typeof trial.button_label === 'undefined' ? 'Submit Answers' : trial.button_label;
+    trial.required = typeof trial.required === 'undefined' ? false : true;
+    trial.oninvalid = typeof trial.oninvalid === 'undefined' ? "" : " oninvalid=\"this.setCustomValidity('{0}')\"".format(trial.oninvalid);
 
     // if any trial variables are functions
     // this evaluates the function and replaces
@@ -79,6 +81,9 @@ jsPsych.plugins['survey-likert'] = (function() {
         options_string += '<li style="width:' + width + '%"><input type="radio" name="Q' + i + '" id="Q' + i + '-'+ j +'" value="' + j + '"';
         if(trial.required){
           options_string += ' required';
+        }
+        if(trial.oninvalid){
+          options_string += trial.oninvalid;
         }
         options_string += '><label class="jspsych-survey-likert-opt-label" for="Q' + i + '-'+ j +'">' + trial.labels[i][j] + '</label></li>';
       }
