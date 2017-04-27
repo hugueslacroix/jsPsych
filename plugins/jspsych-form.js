@@ -334,7 +334,8 @@ jsPsych.plugins["form"] = (function() {
     }
 
     function deleteTab(e, parent_id, ref_tab) {
-      var currentPanel = e.srcElement.parentElement.parentElement.parentElement;
+      var currentPanel = e.srcElement.parentElement;
+      if(!currentPanel.classList.contains("mdl-tabs__panel"))currentPanel = currentPanel.parentElement;
       var newFocusPanel = currentPanel.previousElementSibling.id;
       var currentLink = document.querySelector("a[href='#"+currentPanel.id+"']");
       Tab.focus(newFocusPanel);
@@ -348,6 +349,7 @@ jsPsych.plugins["form"] = (function() {
       setTimeout(function() {
           componentHandler.upgradeDom();
       }, 1);
+      return false;
     }
 
 
@@ -622,8 +624,8 @@ jsPsych.plugins["form"] = (function() {
         this.needQuestion = (item.needQuestion == false) ? false : true;
         if (this.needQuestion) {
             this.question = item.question || "Untitled Question";
-            this.question_html = '<label class="mdl-layout-title mdl-color-text--{0}" style="font-weight: bold;" >{1}{2}</label>'.format(
-                this.question_color, this.question, this.star
+            this.question_html = '<label class="mdl-layout-title mdl-color-text--{0}{3}" style="font-weight: bold;" >{1}{2}</label>'.format(
+                this.question_color, this.question, this.star, (this.label.trim()==''? " label-remove-margin-bottom" : '')
             );
         } else {
             this.question_html = "";
@@ -733,10 +735,13 @@ jsPsych.plugins["form"] = (function() {
     Tab.updateLastPanel = function(tab_id, parent_id, ref_tab){
       var tabCount = document.getElementById(tab_id).parentElement.querySelectorAll(".mdl-tabs__panel").length;
       if(tabCount > ref_tab.min_tabs){
-        document.getElementById(tab_id).querySelector("p").insertAdjacentHTML('afterend', '<span class="mdl-chip mdl-chip--deletable mdl-tabs__delete"><span class="mdl-chip__text">{0}</span><button type="button" class="mdl-chip__action"><i class="material-icons">cancel</i></button></span>'.format(ref_tab.remove_tab.button_label));
-        document.querySelector(".mdl-tabs__delete .mdl-chip__action").onclick = function(e) {
-            deleteTab(e, parent_id, ref_tab);
+        //document.getElementById(tab_id).querySelector("p").insertAdjacentHTML('afterend', '<span class="mdl-chip mdl-chip--deletable mdl-tabs__delete"><span class="mdl-chip__text">{0}</span><button type="button" class="mdl-chip__action"><i class="material-icons">cancel</i></button></span>'.format(ref_tab.remove_tab.button_label));
+        document.getElementById(tab_id).querySelector("p").insertAdjacentHTML('afterend', '<button class="mdl-button mdl-js-button mdl-tabs__delete" style="margin-bottom:20px;">{0} <i class="material-icons">cancel</i></button><br/>'.format(ref_tab.remove_tab.button_label));
+
+        document.querySelector(".mdl-tabs__delete").onclick = function(e) {
+            return deleteTab(e, parent_id, ref_tab);
             return false;
+
         };
       }
     }
@@ -1067,6 +1072,7 @@ jsPsych.plugins["form"] = (function() {
         this.expandable = (this.expandable) ? " mdl-textfield--expandable" : "";
         this.floating = item.floating || false;
         this.floating = (this.floating) ? " mdl-textfield--floating-label" : "";
+        this.tooltip = item.tooltip ? item.tooltip : '';
         this.style = "mdl-textfield mdl-js-textfield{0}{1}".format(this.expandable, this.floating);
 
         this.icon = item.icon || "";
@@ -1092,14 +1098,16 @@ jsPsych.plugins["form"] = (function() {
                 this.alt, this.defaultValue, this.tabIndex,
                 this.value, this.parent_id) +
             '<label class="mdl-textfield__label" for="{0}">{1}</label>'.format(this.id, this.label) +
-            '<span class="mdl-textfield__error">{0}</span>'.format(this.errorInfo);
+            '<span class="mdl-textfield__error">{0}</span>'.format(this.errorInfo) ;
+
 
         if (this.expandable != "")
             component = '<div class="mdl-textfield__expandable-holder">' + component + '</div>';
 
         if (this.icon != "")
             component = '<label class="mdl-button mdl-js-button mdl-button--icon" for="{0}"><i class="material-icons">{1}</i></label>'.format(this.id, this.icon) + component;
-
+        if(this.tooltip != "")
+            component += '<div class="mdl-tooltip mdl-tooltip--large" data-mdl-for="{0}">{1}</div>'.format(this.id, this.tooltip)
         return '<div class="{0}">{1}<div>'.format(this.style, component);
     };
 
@@ -1265,6 +1273,7 @@ jsPsych.plugins["form"] = (function() {
     # @param item.cols --> html attribute
     # @param item.rows --> html attribute
     # @param item.wrap --> html attribute
+    # @param item.errorInfo --> see MDL attribute, define desired error message, the default is "Your input is not as required!"
     ############################################################
     # @return
     #
@@ -1282,6 +1291,7 @@ jsPsych.plugins["form"] = (function() {
         this.cols = item.cols || "30";
         this.rows = item.rows || "10";
         this.wrap = (item.wrap) ? 'wrap="' + item.wrap + '" ' : "";
+        this.errorInfo = item.errorInfo || ("Your input is not as required!");
 
         this.html = this._generate();
         this.render();
@@ -1290,7 +1300,8 @@ jsPsych.plugins["form"] = (function() {
     Textarea.prototype._generate = function() {
         var component = '<textarea class="mdl-textfield__input" id="{0}" rows={1} columns={2} form="{4}" maxlength="{4}" {5} {6} {7} {8} {9} name="{10}"></textarea>'.format(
                 this.id, this.rows, this.cols, this.parent_id, this.maxlength, this.readonly, this.required, this.disabled, this.autofocus, this.wrap, this.name) +
-            '<label class="mdl-textfield__label" for="{0}">{1}</label>'.format(this.id, this.placeholder);
+            '<label class="mdl-textfield__label" for="{0}">{1}</label>'.format(this.id, this.placeholder) +
+            '<span class="mdl-textfield__error">{0}</span>'.format(this.errorInfo) ;
 
         return '<div class="{0}">{1}<div>'.format(this.style, component);
     }
@@ -1494,7 +1505,7 @@ jsPsych.plugins["form"] = (function() {
             this.products.push(product);
             this.html += product.html + "\n";
         }
-        this.html = '<br><div id="{0}">'.format(this.id) + this.html + "</div><br>";
+        this.html = '<div id="{0}">'.format(this.id) + this.html + "</div><br>";
         this.render();
     }
     ToggleGroup.prototype = inherit(Tag.prototype);
