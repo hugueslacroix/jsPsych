@@ -47,7 +47,6 @@ jsPsych.plugins['survey-likert'] = (function() {
     trial.button_label = typeof trial.button_label === 'undefined' ? 'Submit Answers' : trial.button_label;
     trial.required = typeof trial.required === 'undefined' ? false : true;
     trial.oninvalid = typeof trial.oninvalid === 'undefined' ? "" : " oninvalid=\"this.setCustomValidity('{0}')\" onchange=\"for (var i = 0; i < document.getElementsByName(this.name).length; ++i) {document.getElementsByName(this.name)[i].setCustomValidity('')};\"".format(trial.oninvalid);
-    //trial.oninvalid = typeof trial.oninvalid === 'undefined' ? "" : " title=\"{0}\"".format(trial.oninvalid);
 
     // if any trial variables are functions
     // this evaluates the function and replaces
