@@ -64,6 +64,7 @@ jsPsych.plugins['survey-text'] = (function() {
 
     trial.preamble = typeof trial.preamble == 'undefined' ? "" : trial.preamble;
     trial.button_label = typeof trial.button_label === 'undefined' ? 'Submit Answers' : trial.button_label;
+    trial.mdl_layout = typeof trial.mdl_layout === 'undefined' ? false : trial.mdl_layout;
 
     if (typeof trial.rows == 'undefined') {
       trial.rows = [];
@@ -89,10 +90,16 @@ jsPsych.plugins['survey-text'] = (function() {
     // it with the output of the function
     trial = jsPsych.pluginAPI.evaluateFunctionParameters(trial);
 
-    // show preamble text
-    display_element.innerHTML += '<div id="jspsych-survey-text-preamble" class="jspsych-survey-text-preamble">'+trial.preamble+'</div>';
+    if(!trial.mdl_layout){
+      // show preamble text
+      display_element.innerHTML += '<div id="jspsych-survey-text-preamble" class="jspsych-survey-text-preamble">'+trial.preamble+'</div>';
 
-    display_element.innerHTML += '<form id="jspsych-survey-text-form">';
+      display_element.innerHTML += '<form id="jspsych-survey-text-form">';
+    }else{
+      display_element.innerHTML += jsPsych.pluginAPI.getMDLLayout('<div id="jspsych-survey-text-preamble" class="jspsych-survey-text-preamble">'+trial.preamble+'</div>' +
+                                                                  '<form id="jspsych-survey-text-form"></form>')
+    }
+
     var form_element = display_element.querySelector('#jspsych-survey-text-form');
     // add questions
     for (var i = 0; i < trial.questions.length; i++) {
@@ -103,8 +110,8 @@ jsPsych.plugins['survey-text'] = (function() {
     }
 
     // add submit button
-    form_element.innerHTML += '<button id="jspsych-survey-text-next" class="jspsych-btn jspsych-survey-text">'+trial.button_label+'</button>';
-
+    if(!trial.mdl_layout) form_element.innerHTML += '<button id="jspsych-survey-text-next" class="jspsych-btn jspsych-survey-text">'+trial.button_label+'</button>';
+    else form_element.innerHTML += '<button id="jspsych-survey-text-next" class="jspsych-survey-text mdl-button mdl-js-button mdl-button--raised mdl-button--colored">'+trial.button_label+'</button>';
     form_element.querySelector('#jspsych-survey-text-next').addEventListener('click', function() {
       // measure response time
       var endTime = (new Date()).getTime();

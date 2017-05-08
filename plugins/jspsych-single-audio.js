@@ -66,7 +66,8 @@ jsPsych.plugins["single-audio"] = (function() {
     trial.trial_ends_after_audio = (typeof trial.trial_ends_after_audio === 'undefined') ? false : trial.trial_ends_after_audio;
     trial.timing_response = trial.timing_response || -1; // if -1, then wait for response forever
     trial.prompt = (typeof trial.prompt === 'undefined') ? "" : trial.prompt;
-
+    trial.mdl_layout = typeof trial.mdl_layout === 'undefined' ? false : trial.mdl_layout;
+    trial.timing_post_trial_internal = typeof trial.timing_post_trial_internal === 'undefined' ? false : trial.timing_post_trial_internal;
     // if any trial variables are functions
     // this evaluates the function and replaces
     // it with the output of the function
@@ -96,7 +97,8 @@ jsPsych.plugins["single-audio"] = (function() {
 
     // show prompt if there is one
     if (trial.prompt !== "") {
-      display_element.innerHTML = trial.prompt;
+      if(!trial.mdl_layout) display_element.innerHTML = trial.prompt;
+      else display_element.innerHTML = jsPsych.pluginAPI.getMDLLayout(trial.prompt);
     }
 
     // store response
@@ -131,11 +133,21 @@ jsPsych.plugins["single-audio"] = (function() {
         "key_press": response.key
       };
 
-      // clear the display
-      display_element.innerHTML = '';
+
 
       // move on to the next trial
-      jsPsych.finishTrial(trial_data);
+      if(trial.timing_post_trial_internal){
+        if(!trial.mdl_layout) display_element.innerHTML = '...';
+        else display_element.innerHTML = jsPsych.pluginAPI.getMDLLayout('<h2 style="text-align:center;">...<h2>');
+        setTimeout(function(){
+          jsPsych.finishTrial(trial_data);
+        }, trial.timing_post_trial_internal);
+      }else{
+        // clear the display
+        display_element.innerHTML = '';
+        jsPsych.finishTrial(trial_data);
+      }
+
     };
 
     // function to handle responses by the subject

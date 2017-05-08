@@ -37,6 +37,7 @@ jsPsych.plugins.text = (function() {
   plugin.trial = function(display_element, trial) {
 
     trial.choices = trial.choices || jsPsych.ALL_KEYS;
+    trial.mdl_layout = typeof trial.mdl_layout === 'undefined' ? false : trial.mdl_layout;
 
     // if any trial variables are functions
     // this evaluates the function and replaces
@@ -44,7 +45,8 @@ jsPsych.plugins.text = (function() {
     trial = jsPsych.pluginAPI.evaluateFunctionParameters(trial);
 
     // set the HTML of the display target to replaced_text.
-    display_element.innerHTML = trial.text;
+    if(!trial.mdl_layout) display_element.innerHTML = trial.text;
+    else display_element.innerHTML = jsPsych.pluginAPI.getMDLLayout(trial.text);
 
     var after_response = function(info) {
 

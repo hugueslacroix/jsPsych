@@ -47,6 +47,7 @@ jsPsych.plugins['survey-likert'] = (function() {
     trial.button_label = typeof trial.button_label === 'undefined' ? 'Submit Answers' : trial.button_label;
     trial.required = typeof trial.required === 'undefined' ? false : true;
     trial.oninvalid = typeof trial.oninvalid === 'undefined' ? "" : " oninvalid=\"this.setCustomValidity('{0}')\" onchange=\"for (var i = 0; i < document.getElementsByName(this.name).length; ++i) {document.getElementsByName(this.name)[i].setCustomValidity('')};\"".format(trial.oninvalid);
+    trial.mdl_layout = typeof trial.mdl_layout === 'undefined' ? false : trial.mdl_layout;
 
     // if any trial variables are functions
     // this evaluates the function and replaces
@@ -64,10 +65,16 @@ jsPsych.plugins['survey-likert'] = (function() {
       ".jspsych-survey-likert-opts li input[type=radio] { display:block; position:relative; top:0; left:50%; margin-left:-6px; }"
     display_element.querySelector('#jspsych-survey-likert-css').innerHTML = cssstr;
 
-    // show preamble text
-    display_element.innerHTML += '<div id="jspsych-survey-likert-preamble" class="jspsych-survey-likert-preamble">'+trial.preamble+'</div>';
+    if(!trial.mdl_layout){
+      // show preamble text
+      display_element.innerHTML += '<div id="jspsych-survey-likert-preamble" class="jspsych-survey-likert-preamble">'+trial.preamble+'</div>';
 
-    display_element.innerHTML += '<form id="jspsych-survey-likert-form">';
+      display_element.innerHTML += '<form id="jspsych-survey-likert-form">';
+    }else{
+      display_element.innerHTML += jsPsych.pluginAPI.getMDLLayout('<div id="jspsych-survey-likert-preamble" class="jspsych-survey-likert-preamble">'+trial.preamble+'</div>' +
+                                                                  '<form id="jspsych-survey-likert-form"></form>');
+    }
+
 
     var form_element = display_element.querySelector('#jspsych-survey-likert-form');
     // add likert scale questions
@@ -92,8 +99,8 @@ jsPsych.plugins['survey-likert'] = (function() {
     }
 
     // add submit button
-    form_element.innerHTML += '<input type="submit" id="jspsych-survey-likert-next" class="jspsych-survey-likert jspsych-btn" value="'+trial.button_label+'"></input>';
-
+    if(!trial.mdl_layout) form_element.innerHTML += '<input type="submit" id="jspsych-survey-likert-next" class="jspsych-survey-likert jspsych-btn" value="'+trial.button_label+'"></input>';
+    else form_element.innerHTML += '<input type="submit" id="jspsych-survey-likert-next" class="jspsych-survey-likert mdl-button mdl-js-button mdl-button--raised mdl-button--colored" value="'+trial.button_label+'"></input>';
     form_element.addEventListener('submit', function(e){
       e.preventDefault();
       // measure response time

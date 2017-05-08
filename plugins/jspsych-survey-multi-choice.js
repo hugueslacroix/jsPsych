@@ -54,6 +54,13 @@ jsPsych.plugins['survey-multi-choice'] = (function() {
         default: '',
         no_function: false,
         description: ''
+      },
+      mdl_layout: {
+        type: [jsPsych.plugins.parameterType.BOOL],
+        array: false,
+        default: false,
+        no_function: false,
+        description: ''
       }
     }
   }
@@ -71,26 +78,34 @@ jsPsych.plugins['survey-multi-choice'] = (function() {
     trial.horizontal = typeof trial.required == 'undefined' ? false : trial.horizontal;
     //If button_label is empty, the browser's language will be used to determine the button label.
     trial.button_label = typeof trial.button_label === 'undefined' ? '' : trial.button_label;
+    trial.mdl_layout = typeof trial.mdl_layout === 'undefined' ? false : trial.mdl_layout;
 
     // if any trial variables are functions
     // this evaluates the function and replaces
     // it with the output of the function
     trial = jsPsych.pluginAPI.evaluateFunctionParameters(trial);
 
-    // inject CSS for trial
-    var node = display_element.innerHTML += '<style id="jspsych-survey-multi-choice-css">';
-    var cssstr = ".jspsych-survey-multi-choice-question { margin-top: 2em; margin-bottom: 2em; text-align: left; }"+
-      ".jspsych-survey-multi-choice-text span.required {color: darkred;}"+
-      ".jspsych-survey-multi-choice-horizontal .jspsych-survey-multi-choice-text {  text-align: center;}"+
-      ".jspsych-survey-multi-choice-option { line-height: 2; }"+
-      ".jspsych-survey-multi-choice-horizontal .jspsych-survey-multi-choice-option {  display: inline-block;  margin-left: 1em;  margin-right: 1em;  vertical-align: top;}"+
-      "label.jspsych-survey-multi-choice-text input[type='radio'] {margin-right: 1em;}"
 
-    display_element.querySelector('#jspsych-survey-multi-choice-css').innerHTML = cssstr;
 
     // form element
     var trial_form_id = _join(plugin_id_name, "form");
-    display_element.innerHTML += '<form id="'+trial_form_id+'"></form>';
+    if(!trial.mdl_layout){
+      var node = display_element.innerHTML += '<style id="jspsych-survey-multi-choice-css">';
+
+      // inject CSS for trial
+      var cssstr = ".jspsych-survey-multi-choice-question { margin-top: 2em; margin-bottom: 2em; text-align: left; }"+
+        ".jspsych-survey-multi-choice-text span.required {color: darkred;}"+
+        ".jspsych-survey-multi-choice-horizontal .jspsych-survey-multi-choice-text {  text-align: center;}"+
+        ".jspsych-survey-multi-choice-option { line-height: 2; }"+
+        ".jspsych-survey-multi-choice-horizontal .jspsych-survey-multi-choice-option {  display: inline-block;  margin-left: 1em;  margin-right: 1em;  vertical-align: top;}"+
+        "label.jspsych-survey-multi-choice-text input[type='radio'] {margin-right: 1em;}"
+
+      display_element.querySelector('#jspsych-survey-multi-choice-css').innerHTML = cssstr;
+
+      display_element.innerHTML += '<form id="'+trial_form_id+'"></form>';
+    }else{
+      display_element.innerHTML += jsPsych.pluginAPI.getMDLLayout('<form id="'+trial_form_id+'"></form>');
+    }
     var trial_form = display_element.querySelector("#" + trial_form_id);
     // show preamble text
     var preamble_id_name = _join(plugin_id_name, 'preamble');
@@ -109,33 +124,45 @@ jsPsych.plugins['survey-multi-choice'] = (function() {
       var question_selector = _join(plugin_id_selector, i);
 
       // add question text
-      display_element.querySelector(question_selector).innerHTML += '<p class="' + plugin_id_name + '-text survey-multi-choice">' + trial.questions[i] + '</p>';
+      display_element.querySelector(question_selector).innerHTML += '<p class="' + plugin_id_name + '-text survey-multi-choice">' + trial.questions[i] + '</p><div class="radio-container"></div>';
 
       // create option radio buttons
       for (var j = 0; j < trial.options[i].length; j++) {
         var option_id_name = _join(plugin_id_name, "option", i, j),
           option_id_selector = '#' + option_id_name;
 
-        // add radio button container
-        display_element.querySelector(question_selector).innerHTML += '<div id="'+option_id_name+'" class="'+_join(plugin_id_name, 'option')+'"></div>';
-
-        // add label and question text
-        var form = document.getElementById(option_id_name)
         var input_name = _join(plugin_id_name, 'response', i);
         var input_id = _join(plugin_id_name, 'response', i, j);
-        var label = document.createElement('label');
-        label.setAttribute('class', plugin_id_name+'-text');
-        label.innerHTML = trial.options[i][j];
-        label.setAttribute('for', input_id)
 
-        // create radio button
-        var input = document.createElement('input');
-        input.setAttribute('type', "radio");
-        input.setAttribute('name', input_name);
-        input.setAttribute('id', input_id);
-        input.setAttribute('value', trial.options[i][j]);
-        form.appendChild(label);
-        form.insertBefore(input, label);
+        if(!trial.mdl_layout){
+          // add radio button container
+          display_element.querySelector(question_selector).innerHTML += '<div id="'+option_id_name+'" class="'+_join(plugin_id_name, 'option')+'"></div>';
+
+          // add label and question text
+          var form = document.getElementById(option_id_name)
+
+
+          var label = document.createElement('label');
+          label.setAttribute('class', plugin_id_name+'-text');
+          label.innerHTML = trial.options[i][j];
+          label.setAttribute('for', input_id)
+
+          // create radio button
+          var input = document.createElement('input');
+          input.setAttribute('type', "radio");
+          input.setAttribute('name', input_name);
+          input.setAttribute('id', input_id);
+          input.setAttribute('value', trial.options[i][j]);
+          form.appendChild(label);
+          form.insertBefore(input, label);
+        }else{
+          display_element.querySelector(question_selector + " .radio-container").innerHTML += '<label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="{1}">\
+                              <input type="radio" id="{1}" class="mdl-radio__button" name="{2}" value="{3}">\
+                              <span class="mdl-radio__label">{4}</span>\
+                            </label>'.format(plugin_id_name, input_id, input_name, trial.options[i][j], trial.options[i][j]);
+          //form.innerHTML += test;
+        }
+
       }
 
       if (trial.required && trial.required[i]) {
@@ -147,7 +174,9 @@ jsPsych.plugins['survey-multi-choice'] = (function() {
       }
     }
     // add submit button
-    trial_form.innerHTML += '<input type="submit" id="'+plugin_id_name+'-next" class="'+plugin_id_name+' jspsych-btn"' + (trial.button_label ? ' value="'+trial.button_label + '"': '') + '></input>';
+    if(!trial.mdl_layout) trial_form.innerHTML += '<input type="submit" id="'+plugin_id_name+'-next" class="'+plugin_id_name+' jspsych-btn"' + (trial.button_label ? ' value="'+trial.button_label + '"': '') + '></input>';
+    else  trial_form.innerHTML += '<input type="submit" id="'+plugin_id_name+'-next" class="'+plugin_id_name+' mdl-button mdl-js-button mdl-button--raised mdl-button--colored"' + (trial.button_label ? ' value="'+trial.button_label + '"': '') + '></input>';
+
     trial_form.addEventListener('submit', function(event) {
       event.preventDefault();
       var matches = display_element.querySelectorAll("div." + plugin_id_name + "-question");
@@ -180,6 +209,7 @@ jsPsych.plugins['survey-multi-choice'] = (function() {
       // next trial
       jsPsych.finishTrial(trial_data);
     });
+    componentHandler.upgradeDom();
 
     var startTime = (new Date()).getTime();
   };

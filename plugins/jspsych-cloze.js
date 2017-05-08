@@ -103,22 +103,31 @@ jsPsych.plugins['cloze'] = (function(){
 
 	//create the cloze text with <select> elements and everything
 	var renderedContent = trial.text.replace(plugin.questionRegex, replacer);
-	var content = document.createElement("div");
-	content.innerHTML = renderedContent+'<br/>';
-	content.className = "jspsych-cloze-stimulus";
+  var content;
+  //create the submit button
+  var submit_btn = document.createElement("button");
 
-	//create the submit button
-	var submit_btn = document.createElement("button");
-	submit_btn.className = "jspsych-cloze-submit";
-	submit_btn.id = "jspsych-cloze-submit";
-	submit_btn.textContent = trial.button_label;
-	content.appendChild(submit_btn);
+  if(!trial.mdl_layout){
+    content = document.createElement("div");
+    content.innerHTML = renderedContent+'<br/>';
+    content.className = "jspsych-cloze-stimulus";
+    //show the modified text
+    display_element.appendChild(content);
+    //
+    submit_btn.className = "jspsych-cloze-submit";
+  }else{
+    display_element.innerHTML += jsPsych.pluginAPI.getMDLLayout(renderedContent);
+    content = document.querySelector(".mdl-cell.default-content");
+    submit_btn.className = "mdl-button mdl-js-button mdl-button--raised mdl-button--colored";
+  }
 
+  submit_btn.id = "jspsych-cloze-submit";
+  submit_btn.textContent = trial.button_label;
+  content.appendChild(submit_btn);
 
-	//show the modified text
-	display_element.appendChild(content);
-	//start listening for the submit button press
-	submit_btn.addEventListener("click", collect)
+  //start listening for the submit button press
+  submit_btn.addEventListener("click", collect)
+
 	startTime = Date.now();
 
 
