@@ -989,7 +989,7 @@ jsPsych.plugins["form"] = (function() {
         this.options = item.options || ["option1", "option2", "option3"];
         this.option_ids = [];
         this.option_values = [];
-        for (var i in this.options) {
+        for (let i in this.options) {
             this.option_ids.push("option_{0}".format(__OPTION++));
             this.option_values.push(this.options[i]);
         }

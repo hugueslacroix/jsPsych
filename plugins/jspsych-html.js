@@ -65,7 +65,8 @@ jsPsych.plugins.html = (function() {
 
     load(display_element, url, function() {
       var t0 = (new Date()).getTime();
-      var finish = function() {
+      var finish = function(e) {
+        e.preventDefault();
         if (trial.check_fn && !trial.check_fn(display_element)) { return };
         if (trial.cont_key) { document.removeEventListener('keydown', key_listener); }
         var trial_data = {
@@ -74,6 +75,7 @@ jsPsych.plugins.html = (function() {
         };
         display_element.innerHTML = '';
         jsPsych.finishTrial(trial_data);
+        return false;
       };
       if (trial.cont_btn) { display_element.querySelector('#'+trial.cont_btn).addEventListener('click', finish); }
       if (trial.cont_key) {
