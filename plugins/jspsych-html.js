@@ -82,16 +82,17 @@ jsPsych.plugins.html = (function() {
         };
         display_element.addEventListener('keydown', key_listener);
       }
-    });
+    }, trial.mdl_layout);
   };
 
   // helper to load via XMLHttpRequest
-  function load(element, file, callback){
+  function load(element, file, callback, mdl_layout){
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.open("GET", file, true);
     xmlhttp.onreadystatechange = function(){
         if(xmlhttp.status == 200 && xmlhttp.readyState == 4){ //Check if loaded
-            element.innerHTML = xmlhttp.responseText;
+            if(!mdl_layout) element.innerHTML = xmlhttp.responseText;
+            else element.innerHTML = jsPsych.pluginAPI.getMDLLayout(xmlhttp.responseText);
             callback();
         }
     }
