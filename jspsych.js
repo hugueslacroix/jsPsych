@@ -2222,6 +2222,21 @@ jsPsych.pluginAPI = (function() {
   /** {boolean} Indicates whether this instance of jspsych has opened a hardware connection through our browser extension */
   module.hardwareConnected = false;
 
+  module.getMDLLayout = function(content){
+		return '<div class="mdl-layout__container">'+
+			'<div class="mdl-layout mdl-js-layout mdl-color--grey-100">' +
+						'<main class="mdl-layout__content">' +
+							'<div class="content-grid mdl-grid">' +
+							'<div class="mdl-cell mdl-cell--2-col mdl-cell--hide-tablet mdl-cell--hide-phone"></div>' +
+							'<div class="default-content mdl-color--white mdl-shadow--4dp content mdl-color-text--grey-800 mdl-cell mdl-cell--8-col">'+
+							content +
+							'</div>' +
+							'<div class="mdl-cell mdl-cell--2-col mdl-cell--hide-tablet mdl-cell--hide-phone"></div>' +
+							'</div>' +
+						'</main>' +
+			'</div>' +
+		'</div>';
+	}
 
   //it might be useful to open up a line of communication from the extension back to this page script,
   //again, this will have to pass through DOM events. For now speed is of no concern so I will use jQuery
