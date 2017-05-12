@@ -390,6 +390,10 @@ jsPsych.plugins["form"] = (function() {
                     question = new Range(form_id, item);
                     break;
                     // minor features
+                case "number":
+                    question = new InputNumber(form_id, item);
+                    break;
+                    // minor features
                 case "date":
                     question = new InputDate(form_id, item);
                     break;
