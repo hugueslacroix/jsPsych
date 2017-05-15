@@ -43,6 +43,7 @@ var schema = {
 
   */
 
+
 jsPsych.plugins["form"] = (function() {
 
     var plugin = {};
@@ -356,11 +357,13 @@ jsPsych.plugins["form"] = (function() {
     function parseQuestions(schema, form_id) {
         var questions = [];
         var item;
-        for (var i in Object.keys(schema)) {
-            i = Object.keys(schema)[i]
+        for (var i in schema) {
+          if( schema.hasOwnProperty( i ) ) {
+            //i = Object.keys(schema)[i]
             if (i == "form" || i == "tab" || i == "onSubmit")
                 continue;
-            item = schema[i]
+            item = schema[i];
+            //console.log(i);
             if ((schema.form && schema.form.use_data_key) || (schema.tab && schema.tab.use_data_key))
                 item.data_key = i;
             item.question = item.question || i;
@@ -440,6 +443,7 @@ jsPsych.plugins["form"] = (function() {
 
             }
             questions.push(question);
+          }
         }
         return questions;
     }
@@ -457,7 +461,7 @@ jsPsych.plugins["form"] = (function() {
     # item.id <-- automatically assigned
     #
     # @param display_element
-    # @param item --> a set of values for setting
+    # @param item => a set of values for setting
 
     # @param item.form_title
     # @param item.form_title_size
@@ -479,7 +483,8 @@ jsPsych.plugins["form"] = (function() {
     #
     ############################################################
     */
-    function Form(display_element, item = {}) {
+    function Form(display_element, item) {
+        item = item || {};
         this.type = "form";
         this.display_element = display_element || "body";
         this.id = item.id || "{0}_{1}".format(this.type, __FORM++);
@@ -556,29 +561,29 @@ jsPsych.plugins["form"] = (function() {
     ############################################################
     # Tag does the following:
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> an object of values for setting
+    # @param parent_id => the id of its parent element
+    # @param item => an object of values for setting
 
-    # @param item.label --> general inner html content
-    # @param item.question --> question
-    # @param item.question_description --> question description
-    # @param item.question_color --> color of of question
-    # @param item.question_size --> font size of question
-    # @param item.question_description_size --> font size of question description
-    # @param item.question_description_color --> color of question description
-    # @param item.needQuestion --> whether displaying question
-    # @param item.newline --> whether inserting new line when rendering
+    # @param item.label => general inner html content
+    # @param item.question => question
+    # @param item.question_description => question description
+    # @param item.question_color => color of of question
+    # @param item.question_size => font size of question
+    # @param item.question_description_size => font size of question description
+    # @param item.question_description_color => color of question description
+    # @param item.needQuestion => whether displaying question
+    # @param item.newline => whether inserting new line when rendering
 
-    # @param item.value --> html attribute
-    # @param item.name --> html attribute
-    # @param item.type --> html attribute
-    # @param item.id --> html attribute
-    # @param item.disabled --> html attribute
-    # @param item.maxlength --> html attribute
-    # @param item.readonly --> html attribute
-    # @param item.required --> html attribute
-    # @param item.autofocus --> html attribute
-    # @param item.size --> html attribute
+    # @param item.value => html attribute
+    # @param item.name => html attribute
+    # @param item.type => html attribute
+    # @param item.id => html attribute
+    # @param item.disabled => html attribute
+    # @param item.maxlength => html attribute
+    # @param item.readonly => html attribute
+    # @param item.required => html attribute
+    # @param item.autofocus => html attribute
+    # @param item.size => html attribute
 
     ############################################################
     # @return
@@ -647,9 +652,10 @@ jsPsych.plugins["form"] = (function() {
         }
     }
 
-    function Tab(parent_id, item = {}, parent_form, question_index) {
+    function Tab(parent_id, item, parent_form, question_index) {
         var tab_content = [];
         var trial = pluginTrial;
+        item = item || {};
         item.type = item.type || "tab";
         item.id = item.id || "{0}_{1}".format(item.type, __TAB++);
         item.needQuestion = false;
@@ -663,7 +669,7 @@ jsPsych.plugins["form"] = (function() {
         this.html = '<div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect" id="{0}">\
                <div class="mdl-tabs__tab-bar">'.format(item.id);
         for (var i in item.schema) {
-            console.log(item.schema, i);
+            //console.log(item.schema, i);
             item.schema[i].tab.id = item.schema[i].tab.id || "{0}_{1}".format(item.id, __TAB_PANEL++);
             this.html += '<a href="#{0}-panel" class="mdl-tabs__tab{1}">{2}</a>'.format(
                 item.schema[i].tab.id,
@@ -709,8 +715,8 @@ jsPsych.plugins["form"] = (function() {
     }
     Tab.prototype = inherit(Tag.prototype);
 
-    Tab.append = function(parent_id, schema = {}) {
-
+    Tab.append = function(parent_id, schema) {
+        schema = schema || {};
         var tab_bar = document.getElementById(parent_id).querySelector(".mdl-tabs__tab-bar");
         if(tab_bar.querySelector(".is-active")) tab_bar.querySelector(".is-active").classList.remove("is-active");
         if(document.getElementById(parent_id).querySelector(".mdl-tabs__panel.is-active")) document.getElementById(parent_id).querySelector(".mdl-tabs__panel.is-active").classList.remove("is-active");
@@ -771,21 +777,23 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- False
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> an object of values for setting
-    # @param item.buttonStyle --> see MDL attribute
-    # @param item.color --> see MDL attribute
-    # @param item.primary --> see MDL attribute
-    # @param item.accent --> see MDL attribute
-    # @param item.ripple --> see MDL attribute
-    # @param item.icon --> see MDL attribute
-    # @param item.onclick --> html attribute
+    # @param parent_id => the id of its parent element
+    # @param item => an object of values for setting
+    # @param item.buttonStyle => see MDL attribute
+    # @param item.color => see MDL attribute
+    # @param item.primary => see MDL attribute
+    # @param item.accent => see MDL attribute
+    # @param item.ripple => see MDL attribute
+    # @param item.icon => see MDL attribute
+    # @param item.onclick => html attribute
     ############################################################
     # @return
     #
     ############################################################
     */
-    function Button(parent_id, item = {}) {
+    function Button(parent_id, item) {
+    item = item || {};
+        item = item || {};
         item.type = item.type || "button";
         item.id = item.id || "{0}_{1}".format(item.type, __BUTTON++);
         item.needQuestion = false;
@@ -846,16 +854,17 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- False
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> an object of values for setting
-    # @param item.fileType --> prompts users to upload certain file type
-    # @param item.icon --> see MDL attribute
+    # @param parent_id => the id of its parent element
+    # @param item => an object of values for setting
+    # @param item.fileType => prompts users to upload certain file type
+    # @param item.icon => see MDL attribute
     ############################################################
     # @return
     #
     ############################################################
     */
-    function UploadFile(parent_id, item = {}) {
+    function UploadFile(parent_id, item) {
+    item = item || {};
         item.type = "file";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_FILE++);
         Tag.call(this, parent_id, item);
@@ -906,19 +915,20 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- True or assigned by user
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> an object of values for setting
-    # @param item.width --> html attribute
-    # @param item.max --> html attribute
-    # @param item.min --> html attribute
-    # @param item.step --> html attribute
-    # @param item.value_prompt --> prompts users the current value
+    # @param parent_id => the id of its parent element
+    # @param item => an object of values for setting
+    # @param item.width => html attribute
+    # @param item.max => html attribute
+    # @param item.min => html attribute
+    # @param item.step => html attribute
+    # @param item.value_prompt => prompts users the current value
     ############################################################
     # @return
     #
     ############################################################
     */
-    function Range(parent_id, item = {}) {
+    function Range(parent_id, item) {
+    item = item || {};
         item.type = "range";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_RANGE++);
         item.value = item.value || "0";
@@ -970,18 +980,19 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- True or assigned by user
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> an object of values for setting
-    # @param item.options --> the labels of the options
-    # @param item.option_values --> the values of the options
-    # @param item.dropRight --> define from which direction the list drops down, default is "false"
-    # @param item.choose_prompt --> prompts the users to choose
+    # @param parent_id => the id of its parent element
+    # @param item => an object of values for setting
+    # @param item.options => the labels of the options
+    # @param item.option_values => the values of the options
+    # @param item.dropRight => define from which direction the list drops down, default is "false"
+    # @param item.choose_prompt => prompts the users to choose
     ############################################################
     # @return
     #
     ############################################################
     */
-    function Dropdown(parent_id, item = {}) {
+    function Dropdown(parent_id, item) {
+    item = item || {};
         item.type = "select";
         item.id = item.id || "{0}_{1}".format(item.type, __SELECT++);
         item.label = item.label || item.id;
@@ -1050,17 +1061,17 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- True or assigned by user
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> a set of values for setting
-    # @param item.expandable --> see MDL attribute
-    # @param item.floating --> see MDL attribute
-    # @param item.icon --> see MDL attribute
-    # @param item.errorInfo --> see MDL attribute, define desired error message, the default is "Your input is not as required!"
-    # @param item.pattern --> html attribute
-    # @param item.accessKey --> html attribute
-    # @param item.defaultValue --> html attribute
-    # @param item.alt --> html attribute
-    # @param item.tabIndex --> html attribute
+    # @param parent_id => the id of its parent element
+    # @param item => a set of values for setting
+    # @param item.expandable => see MDL attribute
+    # @param item.floating => see MDL attribute
+    # @param item.icon => see MDL attribute
+    # @param item.errorInfo => see MDL attribute, define desired error message, the default is "Your input is not as required!"
+    # @param item.pattern => html attribute
+    # @param item.accessKey => html attribute
+    # @param item.defaultValue => html attribute
+    # @param item.alt => html attribute
+    # @param item.tabIndex => html attribute
     ############################################################
     # @return
     #
@@ -1115,7 +1126,8 @@ jsPsych.plugins["form"] = (function() {
         return '<div class="{0}">{1}<div>'.format(this.style, component);
     };
 
-    function InputDate(parent_id, item = {}) {
+    function InputDate(parent_id, item) {
+    item = item || {};
         item.type = "date";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_DATE++);
         InputTextField.call(this, parent_id, item);
@@ -1125,7 +1137,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputDate.prototype = inherit(InputTextField.prototype);
 
-    function InputDatetime(parent_id, item = {}) {
+    function InputDatetime(parent_id, item) {
+    item = item || {};
         item.type = "datetime";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_DATETIME++);
         InputTextField.call(this, parent_id, item);
@@ -1135,7 +1148,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputDatetime.prototype = inherit(InputTextField.prototype);
 
-    function InputDatetimeLocal(parent_id, item = {}) {
+    function InputDatetimeLocal(parent_id, item) {
+    item = item || {};
         item.type = "datetime-local";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_DATETIME_LOCAL++);
         InputTextField.call(this, parent_id, item);
@@ -1145,7 +1159,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputDatetimeLocal.prototype = inherit(InputTextField.prototype);
 
-    function InputEmail(parent_id, item = {}) {
+    function InputEmail(parent_id, item) {
+    item = item || {};
         item.type = "email";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_EMAIL++);
         item.label = item.label || "Please enter you email...";
@@ -1157,7 +1172,8 @@ jsPsych.plugins["form"] = (function() {
     InputEmail.prototype = inherit(InputTextField.prototype);
 
 
-    function InputMonth(parent_id, item = {}) {
+    function InputMonth(parent_id, item) {
+    item = item || {};
         item.type = "month";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_MONTH++);
         InputTextField.call(this, parent_id, item);
@@ -1167,7 +1183,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputMonth.prototype = inherit(InputTextField.prototype);
 
-    function InputNumber(parent_id, item = {}) {
+    function InputNumber(parent_id, item) {
+    item = item || {};
         item.type = "number";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_NUMBER++);
         item.label = item.label || "Please enter a number...";
@@ -1178,7 +1195,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputNumber.prototype = inherit(InputTextField.prototype);
 
-    function InputPassword(parent_id, item = {}) {
+    function InputPassword(parent_id, item) {
+    item = item || {};
         item.type = "password";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_PASSWORD++);
         item.needQuestion = item.needQuestion || false;
@@ -1191,7 +1209,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputPassword.prototype = inherit(InputTextField.prototype);
 
-    function InputSearch(parent_id, item = {}) {
+    function InputSearch(parent_id, item) {
+    item = item || {};
         item.type = "search";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_SEARCH++);
         item.expandable = (item.expandable == false) ? false : true;
@@ -1205,7 +1224,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputSearch.prototype = inherit(InputTextField.prototype);
 
-    function InputTel(parent_id, item = {}) {
+    function InputTel(parent_id, item) {
+    item = item || {};
         item.type = "tel";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_TEL++);
         item.label = item.label || "Please enter your telephone number...";
@@ -1216,7 +1236,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputTel.prototype = inherit(InputTextField.prototype);
 
-    function InputText(parent_id, item = {}) {
+    function InputText(parent_id, item) {
+    item = item || {};
         item.type = "text";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_TEXT++);
         item.label = item.label || "Please enter some texts...";
@@ -1227,7 +1248,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputText.prototype = inherit(InputTextField.prototype);
 
-    function InputTime(parent_id, item = {}) {
+    function InputTime(parent_id, item) {
+    item = item || {};
         item.type = "time";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_TIME++);
         InputTextField.call(this, parent_id, item);
@@ -1238,7 +1260,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputTime.prototype = inherit(InputTextField.prototype);
 
-    function InputUrl(parent_id, item = {}) {
+    function InputUrl(parent_id, item) {
+    item = item || {};
         item.type = "url";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_URL++);
         item.label = item.label || "Please enter the url...";
@@ -1249,7 +1272,8 @@ jsPsych.plugins["form"] = (function() {
     }
     InputUrl.prototype = inherit(InputTextField.prototype);
 
-    function InputWeek(parent_id, item = {}) {
+    function InputWeek(parent_id, item) {
+    item = item || {};
         item.type = "week";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_WEEK++);
         InputTextField.call(this, parent_id, item);
@@ -1270,20 +1294,21 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- True or assigned by user
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> a set of values for setting
-    # @param item.name --> html attribute
-    # @param item.placeholder --> html attribute
-    # @param item.cols --> html attribute
-    # @param item.rows --> html attribute
-    # @param item.wrap --> html attribute
-    # @param item.errorInfo --> see MDL attribute, define desired error message, the default is "Your input is not as required!"
+    # @param parent_id => the id of its parent element
+    # @param item => a set of values for setting
+    # @param item.name => html attribute
+    # @param item.placeholder => html attribute
+    # @param item.cols => html attribute
+    # @param item.rows => html attribute
+    # @param item.wrap => html attribute
+    # @param item.errorInfo => see MDL attribute, define desired error message, the default is "Your input is not as required!"
     ############################################################
     # @return
     #
     ############################################################
     */
-    function Textarea(parent_id, item = {}) {
+    function Textarea(parent_id, item) {
+    item = item || {};
         item.type = "textarea";
         item.id = item.id || "{0}_{1}".format(item.type, __TEXTAREA++);
         InputTextField.call(this, parent_id, item);
@@ -1321,24 +1346,25 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- True or assigned by user
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> a set of values for setting
-    # @param item.ripple --> see MDL attribute
-    # @param item.checked --> html attribute
+    # @param parent_id => the id of its parent element
+    # @param item => a set of values for setting
+    # @param item.ripple => see MDL attribute
+    # @param item.checked => html attribute
     ############################################################
     # @return
     #
     ############################################################
     */
-    function Toggle(parent_id, item = {}) {
+    function Toggle(parent_id, item) {
+    item = item || {};
         item.newline = item.newline || false;
 
         Tag.call(this, parent_id, item);
 
         // settings for mdl
-        // this.type --> type as a <input> tag
-        // this.type_class --> template of different type class in mdl i.e. checkbox switch...
-        // this.content_class --> template of different content class in mdl
+        // this.type => type as a <input> tag
+        // this.type_class => template of different type class in mdl i.e. checkbox switch...
+        // this.content_class => template of different content class in mdl
         this.disabled = (item.disabled) ? ' disabled="disabled"' : '';
         this.ripple = (item.ripple == false) ? false : true;
         this.toggle_type = item.toggle_type;
@@ -1365,7 +1391,8 @@ jsPsych.plugins["form"] = (function() {
         return html;
     };
 
-    function Checkbox(parent_id, item = {}) {
+    function Checkbox(parent_id, item) {
+    item = item || {};
         item.type = "checkbox";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_CHECKBOX++);
         item.toggle_type = "checkbox";
@@ -1385,7 +1412,8 @@ jsPsych.plugins["form"] = (function() {
     }
     Checkbox.prototype = inherit(Toggle.prototype);
 
-    function Switch(parent_id, item = {}) {
+    function Switch(parent_id, item) {
+    item = item || {};
         item.type = "checkbox";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_CHECKBOX++);
         item.toggle_type = "switch";
@@ -1405,7 +1433,8 @@ jsPsych.plugins["form"] = (function() {
     }
     Switch.prototype = inherit(Toggle.prototype);
 
-    function Radio(parent_id, item = {}) {
+    function Radio(parent_id, item) {
+    item = item || {};
         item.type = "radio";
         item.id = item.id || "{0}_{1}".format(item.type, __INPUT_RADIO++);
         item.toggle_type = "radio";
@@ -1440,12 +1469,12 @@ jsPsych.plugins["form"] = (function() {
     # item.id   <-- automatically assigned
     # item.needQuestion <-- True or assigned by user
     #
-    # @param parent_id --> the id of its parent element
-    # @param item --> a set of values for setting
-    # @param item.images --> an array of images
-    # @param item.values --> an array of values
-    # @param item.labels --> an array of labels
-    # @param item.correctAnswers --> an array of correct answers
+    # @param parent_id => the id of its parent element
+    # @param item => a set of values for setting
+    # @param item.images => an array of images
+    # @param item.values => an array of values
+    # @param item.labels => an array of labels
+    # @param item.correctAnswers => an array of correct answers
     ############################################################
     # @return
     #
