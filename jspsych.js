@@ -77,6 +77,7 @@ window.jsPsych = (function() {
       'preload_audio': [],
       'exclusions': {},
       'show_progress_bar': false,
+      'title_progress_bar':"Completion progress",
       'auto_update_progress_bar': true,
       'auto_preload': true,
       'show_preload_progress_bar': true,
@@ -909,7 +910,7 @@ window.jsPsych = (function() {
   function drawProgressBar() {
     document.querySelector('.jspsych-display-element').insertAdjacentHTML('afterbegin',
       '<div id="jspsych-progressbar-container">'+
-      '<span>Completion Progress</span>'+
+      '<span>'+jsPsych.initSettings().title_progress_bar+'</span>'+
       '<div id="jspsych-progressbar-outer">'+
         '<div id="jspsych-progressbar-inner"></div>'+
       '</div></div>');

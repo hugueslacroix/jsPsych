@@ -68,6 +68,12 @@ jsPsych.plugins["image-audio-response"] = (function() {
                 default: null,
                 description: 'Any content here will be displayed under the button.'
             },
+            prompt_position: {
+                type: jsPsych.plugins.parameterType.STRING,
+                pretty_name: 'Prompt position',
+                default: 'bottom',
+                description: 'Position of the prompt, either top or bottom.'
+            },
             stimulus_duration: {
                 type: jsPsych.plugins.parameterType.INT,
                 pretty_name: 'Stimulus duration',
@@ -91,7 +97,14 @@ jsPsych.plugins["image-audio-response"] = (function() {
                 pretty_name: 'Response ends trial',
                 default: false,
                 description: 'If true, then trial will end when user responds.'
-            }
+            },
+            choices: {
+              type: jsPsych.plugins.parameterType.KEYCODE,
+              array: true,
+              pretty_name: 'Choices',
+              default: jsPsych.ALL_KEYS,
+              description: 'The keys the subject is allowed to press to respond to the stimulus.'
+            },
         }
     };
 
@@ -106,14 +119,21 @@ jsPsych.plugins["image-audio-response"] = (function() {
 
         let playbackElements = [];
 
+        let html = '';
+
+        //show prompt if there is one
+        if (trial.prompt !== null && trial.prompt_position == "top") {
+            html += trial.prompt;
+        }
+
         // display stimulus
-        let html = '<img src="'+trial.stimulus+'" id="jspsych-image-audio-response-stimulus"/>';
+        html += '<img src="'+trial.stimulus+'" id="jspsych-image-audio-response-stimulus"/>';
 
         // add audio element
         html += '<div id="jspsych-image-audio-response-audio-container">'+trial.recordingLightOff+'</div>';
 
         //show prompt if there is one
-        if (trial.prompt !== null) {
+        if (trial.prompt !== null && trial.prompt_position == "bottom") {
             html += trial.prompt;
         }
         // add button element
@@ -145,6 +165,7 @@ jsPsych.plugins["image-audio-response"] = (function() {
         };
 
         let recorder = null;
+        let recorderTimeout = null;
         // function to handle responses by the subject
         function process_audio(stream) {
             // This code largely thanks to skyllo at
@@ -175,11 +196,17 @@ jsPsych.plugins["image-audio-response"] = (function() {
             // start recording with 1 second time between receiving 'ondataavailable' events
             recorder.start(1000);
             // setTimeout to stop recording after 4 seconds
-            setTimeout(() => {
+            recorderTimeout = setTimeout(() => {
                 // this will trigger one final 'ondataavailable' event and set recorder state to 'inactive'
                 recorder.stop();
                 recorder.wrapUp = true;
             }, trial.bufferLength);
+        }
+
+        function forceStopRecording(){
+          recorder.stop();
+          recorder.wrapUp = true;
+          clearTimeout(recorderTimeout);
         }
 
         function showPlaybackTools(data) {
@@ -217,7 +244,6 @@ jsPsych.plugins["image-audio-response"] = (function() {
             let rt = end_time - start_time;
             response.audioData = data;
             response.rt = rt;
-
             if (trial.response_ends_trial) {
                 end_trial();
             }
@@ -240,6 +266,18 @@ jsPsych.plugins["image-audio-response"] = (function() {
 
             // move on to the next trial
             jsPsych.finishTrial(trial_data);
+        }
+
+
+        // start the response listener
+        if (trial.choices != jsPsych.NO_KEYS) {
+          var keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
+            callback_function: forceStopRecording,
+            valid_responses: trial.choices,
+            rt_method: 'date',
+            persist: false,
+            allow_held_key: false
+          });
         }
 
         // hide image if timing is set
